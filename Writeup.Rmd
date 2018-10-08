@@ -1,0 +1,170 @@
+---
+title: 'Peer-graded Assignment: Prediction Assignment Writeup'
+author: "hadeer mahmoud"
+date: '8 october 2018 '
+output:
+  word_document: default
+  pdf_document: default
+  html_document: default
+---
+
+##Background
+Using devices such as Jawbone Up, Nike FuelBand, and Fitbit it is now possible to collect a large amount of data about personal activity relatively inexpensively. These type of devices are part of the quantified self movement - a group of enthusiasts who take measurements about themselves regularly to improve their health, to find patterns in their behavior, or because they are tech geeks. One thing that people regularly do is quantify how much of a particular activity they do, but they rarely quantify how well they do it. In this project, your goal will be to use data from accelerometers on the belt, forearm, arm, and dumbell of 6 participants. They were asked to perform barbell lifts correctly and incorrectly in 5 different ways. More information is available from the website here: http://groupware.les.inf.puc-rio.br/har (see the section on the Weight Lifting Exercise Dataset).
+
+Data
+
+The training data for this project are available here:
+
+https://d396qusza40orc.cloudfront.net/predmachlearn/pml-training.csv
+
+The test data are available here:
+
+https://d396qusza40orc.cloudfront.net/predmachlearn/pml-testing.csv
+
+
+```{r  }
+ library(lattice);library(ggplot2)
+ 
+```
+
+```{r  }
+ library(caret);library(rpart)
+ 
+```
+
+```{r  }
+ library(randomForest)
+ 
+```
+
+##Loading Data
+CHeck the training and testing data, identifying the missing data, “NA” and “#DIV” as “NA” everywhere.
+
+
+
+```{r  }
+ url.train <- "https://d396qusza40orc.cloudfront.net/predmachlearn/pml-training.csv"
+ url.test <- "https://d396qusza40orc.cloudfront.net/predmachlearn/pml-testing.csv"
+ training <- read.csv(url(url.train), na.strings = c("NA", "", "#DIV0!"))
+ testing <- read.csv(url(url.test), na.strings = c("NA", "", "#DIV0!"))
+```
+ 
+##Cleaning data
+We should delete the column that contains NA to avoid the error. In addition, in order to make accurate predictions, columns that is not related exercise must also be deleted.  
+ 
+
+```{r  }
+ colname <- colnames(training)[!colSums(is.na(training)) > 0]
+ colname
+```
+
+```{r  }
+ training<-training[,colSums(is.na(training)) == 0]
+ testing <-testing[,colSums(is.na(testing)) == 0]
+```
+
+##We need to define the same columns
+
+
+```{r  }
+ sameColumsName <- colnames(training) == colnames(testing)
+ colnames(training)[sameColumsName==FALSE]
+
+```
+Therefore,the “classe” is not included in the testing data.
+
+##Checking the column names of traning dataset
+
+```{r  }
+head(colnames(training))
+ 
+```
+
+##The first 7 variables of the training data were deleted, because they are irrelevant to the prediction
+
+```{r  }
+ training <- training[,8:dim(training)[2]]
+ testing <- testing[,8:dim(testing)[2]]
+```
+
+##Training, testing & validation data
+The training dataset was separated into three parts: tranining part (60%), testing part (20%), and validation part (20%)
+
+
+```{r  }
+
+set.seed(123)
+Seeddata1 <- createDataPartition(y = training$classe, p = 0.8, list = F)
+Seeddata2 <- training[Seeddata1,]
+validation <- training[-Seeddata1,]
+Training_data1 <- createDataPartition(y = Seeddata2$classe, p = 0.75, list = F)
+training_data2 <- Seeddata2[Training_data1,]
+testing_data <- Seeddata2[-Training_data1,]
+
+
+```
+
+##Data exploration
+
+
+```{r  }
+qplot(classe, data=training_data2, main="Distribution of Classes")
+
+```
+
+##Findout the predictors
+
+
+```{r  }
+names(training_data2[,-50])
+ 
+```
+##Prediction model
+
+```{r  }
+model_tree <- rpart(classe ~ ., data=training_data2, method="class")
+prediction_tree <- predict(model_tree, testing_data, type="class")
+class_tree <- confusionMatrix(prediction_tree, testing_data$classe)
+class_tree
+```
+#Checking the model_tree
+
+```{r  }
+ library(rpart.plot)
+ rpart.plot(model_tree)
+```
+##Random forest model
+
+```{r  }
+forest_model <- randomForest(classe ~ ., data=training_data2, method="class")
+prediction_forest <- predict(forest_model, testing_data, type="class")
+random_forest <- confusionMatrix(prediction_forest, testing_data$classe)
+random_forest
+
+```
+
+##Final prediction
+Prediction Algorithm and Confusion Matrix
+
+```{r  }
+prediction1 <- predict(forest_model, newdata=testing_data)
+confusionMatrix(prediction1, testing_data$classe) 
+```
+
+The Random Forest is a much better predictive model than the Decision Tree, which has a larger accuracy (99.91%) 
+
+
+##Conclusions
+the characteristics of predictors for both traning and testing datasets (train and test) are reduced. These characteristics are the percentage of NAs values, low variance, correlation and skewness. Therefore, the variables of the data sets are scaled. The training dataset is splitted into subtraining and validation parts to construct a predictive model and evaluate its accuracy. Decision Tree and Random Forest are applied.The Random Forest is a much better predictive model than the Decision Tree, which has a larger accuracy (99.91%).
+
+
+
+
+
+
+
+
+
+
+
+
